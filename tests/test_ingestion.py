@@ -16,6 +16,11 @@ class ChunkTextTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             chunk_text("example text", chunk_size=100, chunk_overlap=100)
 
+    def test_short_text_stays_in_one_chunk(self) -> None:
+        chunks = chunk_text("short document", chunk_size=100, chunk_overlap=10)
+
+        self.assertEqual(chunks, ["short document"])
+
 
 if __name__ == "__main__":
     unittest.main()
