@@ -11,7 +11,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-from config import CHUNK_OVERLAP, CHUNK_SIZE, EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME, TOP_K
+from config import CHROMA_DIR, CHUNK_OVERLAP, CHUNK_SIZE, EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME, TOP_K
 from embeddings import index_chunks, load_embedding_model
 from generation import generate_answer
 from ingestion import chunk_text, load_pdf_text
@@ -35,6 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP, help="Characters repeated between neighboring chunks.")
     parser.add_argument("--embedding-model", default=EMBEDDING_MODEL_NAME, help="SentenceTransformers model used for local embeddings.")
     parser.add_argument("--groq-model", default=GROQ_MODEL_NAME, help="Groq model used to generate answers.")
+    parser.add_argument("--chroma-dir", type=Path, default=CHROMA_DIR, help="Directory where ChromaDB stores embeddings.")
     return parser.parse_args()
 
 
@@ -62,7 +63,13 @@ def validate_cli_options(args: argparse.Namespace) -> None:
         raise ValueError("--chunk-overlap must be smaller than --chunk-size.")
 
 
-def prepare_document(pdf_path: Path, chunk_size: int, chunk_overlap: int, embedding_model_name: str):
+def prepare_document(
+    pdf_path: Path,
+    chunk_size: int,
+    chunk_overlap: int,
+    embedding_model_name: str,
+    chroma_dir: Path,
+):
     """Load, chunk, embed, and store a PDF in Chroma."""
     print("Loading embedding model...")
     embedding_model = load_embedding_model(embedding_model_name)
@@ -74,7 +81,7 @@ def prepare_document(pdf_path: Path, chunk_size: int, chunk_overlap: int, embedd
     chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     print(f"Indexing {len(chunks)} chunks in ChromaDB...")
-    collection = index_chunks(pdf_path, chunks, embedding_model)
+    collection = index_chunks(pdf_path, chunks, embedding_model, chroma_dir)
 
     return collection, embedding_model
 
@@ -113,6 +120,7 @@ def main() -> int:
             args.chunk_size,
             args.chunk_overlap,
             args.embedding_model,
+            args.chroma_dir,
         )
         chat_loop(collection, embedding_model, groq_api_key, args.top_k, args.groq_model)
         return 0
