@@ -36,6 +36,14 @@ $env:GROQ_MODEL="llama-3.3-70b-versatile"
 
 Use `.env.example` as a reference for the environment variables this project expects.
 
+## Useful CLI Options
+
+```powershell
+python main.py paper.pdf --top-k 5 --chunk-size 900 --chunk-overlap 150 --debug
+python main.py paper.pdf --reindex
+python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
+```
+
 ## Concepts
 
 - RAG: retrieves document evidence before asking an LLM to answer.
