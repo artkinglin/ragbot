@@ -44,6 +44,12 @@ python main.py paper.pdf --reindex
 python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
 ```
 
+## Tests
+
+```powershell
+python -m unittest discover
+```
+
 ## Concepts
 
 - RAG: retrieves document evidence before asking an LLM to answer.
