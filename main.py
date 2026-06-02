@@ -36,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--embedding-model", default=EMBEDDING_MODEL_NAME, help="SentenceTransformers model used for local embeddings.")
     parser.add_argument("--groq-model", default=GROQ_MODEL_NAME, help="Groq model used to generate answers.")
     parser.add_argument("--chroma-dir", type=Path, default=CHROMA_DIR, help="Directory where ChromaDB stores embeddings.")
+    parser.add_argument("--debug", action="store_true", help="Print retrieved chunks before each answer.")
     return parser.parse_args()
 
 
@@ -86,7 +87,14 @@ def prepare_document(
     return collection, embedding_model
 
 
-def chat_loop(collection, embedding_model, groq_api_key: str, top_k: int, groq_model: str) -> None:
+def chat_loop(
+    collection,
+    embedding_model,
+    groq_api_key: str,
+    top_k: int,
+    groq_model: str,
+    debug: bool,
+) -> None:
     """Run the interactive chat session."""
     print("\nChat with your document. Type 'exit' or 'quit' to stop.\n")
 
@@ -100,6 +108,12 @@ def chat_loop(collection, embedding_model, groq_api_key: str, top_k: int, groq_m
             continue
 
         retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model, top_k)
+        if debug:
+            print("\nRetrieved chunks:")
+            for chunk in retrieved_chunks:
+                print(chunk)
+                print("---")
+
         answer = generate_answer(query, retrieved_chunks, groq_api_key, groq_model)
 
         print("\nAssistant:")
@@ -122,7 +136,7 @@ def main() -> int:
             args.embedding_model,
             args.chroma_dir,
         )
-        chat_loop(collection, embedding_model, groq_api_key, args.top_k, args.groq_model)
+        chat_loop(collection, embedding_model, groq_api_key, args.top_k, args.groq_model, args.debug)
         return 0
     except KeyboardInterrupt:
         print("\nInterrupted.")
