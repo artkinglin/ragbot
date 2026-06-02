@@ -4,6 +4,12 @@ This project is a small Retrieval Augmented Generation chatbot backbone. It read
 
 No LangChain. No LlamaIndex. The goal is to make every moving part visible.
 
+## Pipeline
+
+```text
+PDF -> text -> chunks -> embeddings -> ChromaDB -> top chunks -> Groq -> answer
+```
+
 ## Files
 
 - `config.py` - all settings in one place.
