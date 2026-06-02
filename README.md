@@ -28,6 +28,8 @@ Optional model override:
 $env:GROQ_MODEL="llama-3.3-70b-versatile"
 ```
 
+Use `.env.example` as a reference for the environment variables this project expects.
+
 ## Concepts
 
 - RAG: retrieves document evidence before asking an LLM to answer.
