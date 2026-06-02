@@ -32,6 +32,12 @@ def create_document_id(pdf_path: Path) -> str:
     return hasher.hexdigest()[:16]
 
 
+def get_collection_name(pdf_path: Path) -> str:
+    """Build the Chroma collection name for a PDF."""
+    document_id = create_document_id(pdf_path)
+    return f"{COLLECTION_PREFIX}_{document_id}"
+
+
 def load_embedding_model(model_name: str = EMBEDDING_MODEL_NAME) -> SentenceTransformer:
     """Load the local SentenceTransformers embedding model."""
     return SentenceTransformer(model_name)
@@ -76,12 +82,10 @@ def build_chunk_metadata(pdf_path: Path, chunk: str, chunk_index: int) -> dict[s
 
 def get_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR):
     """Open the Chroma collection for one PDF."""
-    document_id = create_document_id(pdf_path)
-
     # PersistentClient writes vectors to disk, so indexing survives restarts.
     client = chromadb.PersistentClient(path=str(chroma_dir))
 
-    return client.get_or_create_collection(name=f"{COLLECTION_PREFIX}_{document_id}")
+    return client.get_or_create_collection(name=get_collection_name(pdf_path))
 
 
 def index_chunks(
