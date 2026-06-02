@@ -12,6 +12,10 @@ class ChunkTextTests(unittest.TestCase):
         self.assertTrue(chunks)
         self.assertTrue(all(chunk.strip() for chunk in chunks))
 
+    def test_chunk_overlap_must_be_smaller_than_chunk_size(self) -> None:
+        with self.assertRaises(ValueError):
+            chunk_text("example text", chunk_size=100, chunk_overlap=100)
+
 
 if __name__ == "__main__":
     unittest.main()
