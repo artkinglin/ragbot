@@ -37,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--groq-model", default=GROQ_MODEL_NAME, help="Groq model used to generate answers.")
     parser.add_argument("--chroma-dir", type=Path, default=CHROMA_DIR, help="Directory where ChromaDB stores embeddings.")
     parser.add_argument("--debug", action="store_true", help="Print retrieved chunks before each answer.")
+    parser.add_argument("--reindex", action="store_true", help="Rebuild the Chroma collection before chatting.")
     return parser.parse_args()
 
 
@@ -70,6 +71,7 @@ def prepare_document(
     chunk_overlap: int,
     embedding_model_name: str,
     chroma_dir: Path,
+    reindex: bool,
 ):
     """Load, chunk, embed, and store a PDF in Chroma."""
     print("Loading embedding model...")
@@ -82,7 +84,7 @@ def prepare_document(
     chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     print(f"Indexing {len(chunks)} chunks in ChromaDB...")
-    collection = index_chunks(pdf_path, chunks, embedding_model, chroma_dir)
+    collection = index_chunks(pdf_path, chunks, embedding_model, chroma_dir, reindex)
 
     return collection, embedding_model
 
@@ -140,6 +142,7 @@ def main() -> int:
             args.chunk_overlap,
             args.embedding_model,
             args.chroma_dir,
+            args.reindex,
         )
         chat_loop(collection, embedding_model, groq_api_key, args.top_k, args.groq_model, args.debug)
         return 0
