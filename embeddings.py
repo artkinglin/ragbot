@@ -60,6 +60,20 @@ def extract_page_number(chunk: str) -> int | None:
     return int(match.group(1))
 
 
+def build_chunk_metadata(pdf_path: Path, chunk: str, chunk_index: int) -> dict[str, str | int]:
+    """Create Chroma metadata for one stored chunk."""
+    metadata: dict[str, str | int] = {
+        "source": str(pdf_path),
+        "chunk_index": chunk_index,
+    }
+
+    page_number = extract_page_number(chunk)
+    if page_number is not None:
+        metadata["page"] = page_number
+
+    return metadata
+
+
 def get_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR):
     """Open the Chroma collection for one PDF."""
     document_id = create_document_id(pdf_path)
