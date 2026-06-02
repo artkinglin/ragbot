@@ -101,7 +101,7 @@ def chat_loop(
     print("\nChat with your document. Type 'exit' or 'quit' to stop.\n")
 
     while True:
-        query = input("You: ").strip()
+        query = normalize_query(input("You: "))
         if query.lower() in {"exit", "quit"}:
             print("Goodbye.")
             return
@@ -126,6 +126,11 @@ def print_retrieved_chunks(retrieved_chunks: list[str]) -> None:
     for chunk in retrieved_chunks:
         print(chunk)
         print("---")
+
+
+def normalize_query(raw_query: str) -> str:
+    """Normalize terminal input before retrieval."""
+    return raw_query.strip()
 
 
 def main() -> int:
