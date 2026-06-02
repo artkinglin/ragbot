@@ -11,7 +11,14 @@ import sys
 import textwrap
 from pathlib import Path
 
-from config import CHROMA_DIR, CHUNK_OVERLAP, CHUNK_SIZE, EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME, TOP_K
+from config import (
+    CHROMA_DIR,
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    EMBEDDING_MODEL_NAME,
+    GROQ_MODEL_NAME,
+    TOP_K,
+)
 from embeddings import index_chunks, load_embedding_model
 from generation import generate_answer
 from ingestion import chunk_text, load_pdf_text
