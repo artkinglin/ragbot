@@ -1,0 +1,102 @@
+"""
+CLI entry point for the RAG chatbot.
+
+Run:
+    python main.py path\\to\\document.pdf
+"""
+
+import argparse
+import os
+import sys
+import textwrap
+from pathlib import Path
+
+from config import EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME
+from embeddings import index_chunks, load_embedding_model
+from generation import generate_answer
+from ingestion import chunk_text, load_pdf_text
+from retrieval import retrieve_top_chunks
+
+
+def require_groq_api_key() -> str:
+    """Read the Groq API key from the environment."""
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("Set GROQ_API_KEY before running the chatbot.")
+    return api_key
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Chat with a PDF using a raw Python RAG pipeline.")
+    parser.add_argument("pdf", type=Path, help="Path to the PDF you want to chat with.")
+    return parser.parse_args()
+
+
+def validate_pdf_path(pdf_path: Path) -> None:
+    """Fail early with clear messages for common input mistakes."""
+    if not pdf_path.exists():
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+    if pdf_path.suffix.lower() != ".pdf":
+        raise ValueError(f"Expected a .pdf file, got: {pdf_path}")
+
+
+def prepare_document(pdf_path: Path):
+    """Load, chunk, embed, and store a PDF in Chroma."""
+    print("Loading embedding model...")
+    embedding_model = load_embedding_model(EMBEDDING_MODEL_NAME)
+
+    print("Reading PDF...")
+    text = load_pdf_text(pdf_path)
+
+    print("Chunking PDF text...")
+    chunks = chunk_text(text)
+
+    print(f"Indexing {len(chunks)} chunks in ChromaDB...")
+    collection = index_chunks(pdf_path, chunks, embedding_model)
+
+    return collection, embedding_model
+
+
+def chat_loop(collection, embedding_model, groq_api_key: str) -> None:
+    """Run the interactive chat session."""
+    print("\nChat with your document. Type 'exit' or 'quit' to stop.\n")
+
+    while True:
+        query = input("You: ").strip()
+        if query.lower() in {"exit", "quit"}:
+            print("Goodbye.")
+            return
+
+        if not query:
+            continue
+
+        retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model)
+        answer = generate_answer(query, retrieved_chunks, groq_api_key, GROQ_MODEL_NAME)
+
+        print("\nAssistant:")
+        print(textwrap.fill(answer, width=100))
+        print()
+
+
+def main() -> int:
+    """Coordinate setup, indexing, and chatting."""
+    args = parse_args()
+
+    try:
+        validate_pdf_path(args.pdf)
+        groq_api_key = require_groq_api_key()
+        collection, embedding_model = prepare_document(args.pdf)
+        chat_loop(collection, embedding_model, groq_api_key)
+        return 0
+    except KeyboardInterrupt:
+        print("\nInterrupted.")
+        return 130
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
