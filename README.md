@@ -45,6 +45,7 @@ python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v
 ```
 
 Use `--reindex` after changing chunking settings so Chroma rebuilds stored vectors from the new chunks.
+Use `--debug` when you want to inspect retrieved chunks before Groq generates the final answer.
 
 ## Tests
 
