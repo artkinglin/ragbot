@@ -5,6 +5,7 @@ This module owns the "chunks -> vectors -> vector database" step.
 """
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Iterable
 
@@ -12,6 +13,9 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 
 from config import CHROMA_DIR, COLLECTION_PREFIX, EMBEDDING_MODEL_NAME
+
+
+PAGE_MARKER_PATTERN = re.compile(r"\[Page (\d+)\]")
 
 
 def create_document_id(pdf_path: Path) -> str:
@@ -45,6 +49,15 @@ def embed_texts(model: SentenceTransformer, texts: Iterable[str]) -> list[list[f
 
     # Chroma stores JSON-like values, so convert numpy arrays to plain lists.
     return embeddings.tolist()
+
+
+def extract_page_number(chunk: str) -> int | None:
+    """Read the first page marker from a chunk when one is available."""
+    match = PAGE_MARKER_PATTERN.search(chunk)
+    if not match:
+        return None
+
+    return int(match.group(1))
 
 
 def get_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR):
