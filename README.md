@@ -10,6 +10,13 @@ No LangChain. No LlamaIndex. The goal is to make every moving part visible.
 PDF -> text -> chunks -> embeddings -> ChromaDB -> top chunks -> Groq -> answer
 ```
 
+## Common Workflow
+
+1. Add a PDF path when starting the CLI.
+2. Let the app build or reuse the local Chroma index.
+3. Ask questions in the terminal.
+4. Turn on `--debug` if the answer looks wrong and inspect retrieval first.
+
 ## Files
 
 - `config.py` - all settings in one place.
