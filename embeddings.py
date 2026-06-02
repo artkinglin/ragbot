@@ -102,11 +102,8 @@ def index_chunks(
 
     ids = [f"{document_id}_chunk_{index}" for index in range(len(chunks))]
     metadatas = [
-        {
-            "source": str(pdf_path),
-            "chunk_index": index,
-        }
-        for index in range(len(chunks))
+        build_chunk_metadata(pdf_path, chunk, index)
+        for index, chunk in enumerate(chunks)
     ]
 
     collection.add(
