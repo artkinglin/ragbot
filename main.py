@@ -11,7 +11,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-from config import EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME
+from config import EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME, TOP_K
 from embeddings import index_chunks, load_embedding_model
 from generation import generate_answer
 from ingestion import chunk_text, load_pdf_text
@@ -30,6 +30,7 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Chat with a PDF using a raw Python RAG pipeline.")
     parser.add_argument("pdf", type=Path, help="Path to the PDF you want to chat with.")
+    parser.add_argument("--top-k", type=int, default=TOP_K, help="Number of chunks to retrieve.")
     return parser.parse_args()
 
 
@@ -59,7 +60,7 @@ def prepare_document(pdf_path: Path):
     return collection, embedding_model
 
 
-def chat_loop(collection, embedding_model, groq_api_key: str) -> None:
+def chat_loop(collection, embedding_model, groq_api_key: str, top_k: int) -> None:
     """Run the interactive chat session."""
     print("\nChat with your document. Type 'exit' or 'quit' to stop.\n")
 
@@ -72,7 +73,7 @@ def chat_loop(collection, embedding_model, groq_api_key: str) -> None:
         if not query:
             continue
 
-        retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model)
+        retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model, top_k)
         answer = generate_answer(query, retrieved_chunks, groq_api_key, GROQ_MODEL_NAME)
 
         print("\nAssistant:")
@@ -88,7 +89,7 @@ def main() -> int:
         validate_pdf_path(args.pdf)
         groq_api_key = require_groq_api_key()
         collection, embedding_model = prepare_document(args.pdf)
-        chat_loop(collection, embedding_model, groq_api_key)
+        chat_loop(collection, embedding_model, groq_api_key, args.top_k)
         return 0
     except KeyboardInterrupt:
         print("\nInterrupted.")
