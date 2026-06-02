@@ -36,8 +36,9 @@ def retrieve_top_chunks(
         start=1,
     ):
         # The labels help both the LLM and the developer see where evidence came from.
+        page_label = f" | page={metadata.get('page')}" if metadata.get("page") else ""
         formatted_chunks.append(
-            f"Source {rank} | chunk={metadata.get('chunk_index')} | distance={distance:.4f}\n"
+            f"Source {rank} | chunk={metadata.get('chunk_index')}{page_label} | distance={distance:.4f}\n"
             f"{document}"
         )
 
