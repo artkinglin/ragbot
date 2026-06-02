@@ -17,7 +17,7 @@ No LangChain. No LlamaIndex. The goal is to make every moving part visible.
 ## Setup
 
 ```powershell
-pip install pypdf sentence-transformers chromadb groq
+pip install -r requirements.txt
 $env:GROQ_API_KEY="your-groq-api-key"
 python main.py path\to\your.pdf
 ```
