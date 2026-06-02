@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE, help="Number of characters per text chunk.")
     parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP, help="Characters repeated between neighboring chunks.")
     parser.add_argument("--embedding-model", default=EMBEDDING_MODEL_NAME, help="SentenceTransformers model used for local embeddings.")
+    parser.add_argument("--groq-model", default=GROQ_MODEL_NAME, help="Groq model used to generate answers.")
     return parser.parse_args()
 
 
@@ -78,7 +79,7 @@ def prepare_document(pdf_path: Path, chunk_size: int, chunk_overlap: int, embedd
     return collection, embedding_model
 
 
-def chat_loop(collection, embedding_model, groq_api_key: str, top_k: int) -> None:
+def chat_loop(collection, embedding_model, groq_api_key: str, top_k: int, groq_model: str) -> None:
     """Run the interactive chat session."""
     print("\nChat with your document. Type 'exit' or 'quit' to stop.\n")
 
@@ -92,7 +93,7 @@ def chat_loop(collection, embedding_model, groq_api_key: str, top_k: int) -> Non
             continue
 
         retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model, top_k)
-        answer = generate_answer(query, retrieved_chunks, groq_api_key, GROQ_MODEL_NAME)
+        answer = generate_answer(query, retrieved_chunks, groq_api_key, groq_model)
 
         print("\nAssistant:")
         print(textwrap.fill(answer, width=100))
@@ -113,7 +114,7 @@ def main() -> int:
             args.chunk_overlap,
             args.embedding_model,
         )
-        chat_loop(collection, embedding_model, groq_api_key, args.top_k)
+        chat_loop(collection, embedding_model, groq_api_key, args.top_k, args.groq_model)
         return 0
     except KeyboardInterrupt:
         print("\nInterrupted.")
