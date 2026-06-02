@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+.chroma_rag/
+ragbot_backbone.zip
+.env
