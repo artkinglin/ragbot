@@ -45,6 +45,13 @@ $env:GROQ_MODEL="llama-3.3-70b-versatile"
 
 Use `.env.example` as a reference for the environment variables this project expects.
 
+## Environment Variables
+
+| Name | Required | Purpose |
+| --- | --- | --- |
+| `GROQ_API_KEY` | Yes | Authenticates Groq API requests. |
+| `GROQ_MODEL` | No | Overrides the default Groq model. |
+
 ## Useful CLI Options
 
 ```powershell
