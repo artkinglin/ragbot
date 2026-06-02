@@ -44,6 +44,8 @@ python main.py paper.pdf --reindex
 python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
 ```
 
+Use `--reindex` after changing chunking settings so Chroma rebuilds stored vectors from the new chunks.
+
 ## Tests
 
 ```powershell
