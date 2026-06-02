@@ -55,6 +55,7 @@ Use `.env.example` as a reference for the environment variables this project exp
 ## Useful CLI Options
 
 ```powershell
+python main.py --help
 python main.py paper.pdf --top-k 5 --chunk-size 900 --chunk-overlap 150 --debug
 python main.py paper.pdf --reindex
 python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
