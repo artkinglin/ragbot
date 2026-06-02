@@ -9,6 +9,9 @@ from groq import Groq
 from config import GROQ_MODEL_NAME, GROQ_TEMPERATURE
 
 
+SYSTEM_PROMPT = "You are a careful RAG assistant that answers only from supplied context."
+
+
 def build_prompt(query: str, retrieved_chunks: list[str]) -> str:
     """Build the prompt sent to the LLM."""
     context = "\n\n---\n\n".join(retrieved_chunks)
@@ -45,7 +48,7 @@ def generate_answer(
         messages=[
             {
                 "role": "system",
-                "content": "You are a careful RAG assistant that answers only from supplied context.",
+                "content": SYSTEM_PROMPT,
             },
             {
                 "role": "user",
