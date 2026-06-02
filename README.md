@@ -27,6 +27,8 @@ PDF -> text -> chunks -> embeddings -> ChromaDB -> top chunks -> Groq -> answer
 - `main.py` - CLI entry point that ties everything together.
 - `README.md` - setup guide, learning notes, and interview Q&A.
 
+Each Python file owns one RAG stage so the code can be read in pipeline order.
+
 ## Setup
 
 ```powershell
