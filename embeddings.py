@@ -57,9 +57,14 @@ def get_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR):
     return client.get_or_create_collection(name=f"{COLLECTION_PREFIX}_{document_id}")
 
 
-def index_chunks(pdf_path: Path, chunks: list[str], model: SentenceTransformer):
+def index_chunks(
+    pdf_path: Path,
+    chunks: list[str],
+    model: SentenceTransformer,
+    chroma_dir: Path = CHROMA_DIR,
+):
     """Embed chunks and store them in Chroma if the PDF is not already indexed."""
-    collection = get_collection(pdf_path)
+    collection = get_collection(pdf_path, chroma_dir)
 
     # Reuse existing vectors so repeated runs start fast and do not duplicate data.
     if collection.count() > 0:
