@@ -53,6 +53,12 @@ def validate_cli_options(args: argparse.Namespace) -> None:
     if args.chunk_size < 100:
         raise ValueError("--chunk-size must be at least 100 characters.")
 
+    if args.chunk_overlap < 0:
+        raise ValueError("--chunk-overlap cannot be negative.")
+
+    if args.chunk_overlap >= args.chunk_size:
+        raise ValueError("--chunk-overlap must be smaller than --chunk-size.")
+
 
 def prepare_document(pdf_path: Path, chunk_size: int, chunk_overlap: int):
     """Load, chunk, embed, and store a PDF in Chroma."""
