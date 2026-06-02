@@ -75,6 +75,12 @@ python -m unittest discover
 - Environment variable: keeps `GROQ_API_KEY` out of source code.
 - CLI loop: keeps accepting questions until the user exits.
 
+## Limitations
+
+- Scanned PDFs need OCR before `pypdf` can extract useful text.
+- Character chunking is easy to learn from, but token chunking is more precise.
+- Retrieved chunks can still be irrelevant if the embedding model does not capture the question well.
+
 ## Things To Modify
 
 1. Change `CHUNK_SIZE` and `CHUNK_OVERLAP` in `config.py` and compare answer quality.
