@@ -43,6 +43,12 @@ def validate_pdf_path(pdf_path: Path) -> None:
         raise ValueError(f"Expected a .pdf file, got: {pdf_path}")
 
 
+def validate_cli_options(args: argparse.Namespace) -> None:
+    """Fail early when numeric settings cannot produce useful retrieval."""
+    if args.top_k < 1:
+        raise ValueError("--top-k must be at least 1.")
+
+
 def prepare_document(pdf_path: Path):
     """Load, chunk, embed, and store a PDF in Chroma."""
     print("Loading embedding model...")
@@ -87,6 +93,7 @@ def main() -> int:
 
     try:
         validate_pdf_path(args.pdf)
+        validate_cli_options(args)
         groq_api_key = require_groq_api_key()
         collection, embedding_model = prepare_document(args.pdf)
         chat_loop(collection, embedding_model, groq_api_key, args.top_k)
