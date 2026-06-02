@@ -88,6 +88,18 @@ def get_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR):
     return client.get_or_create_collection(name=get_collection_name(pdf_path))
 
 
+def delete_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR) -> None:
+    """Delete the Chroma collection for a PDF when it exists."""
+    client = chromadb.PersistentClient(path=str(chroma_dir))
+    collection_name = get_collection_name(pdf_path)
+
+    try:
+        client.delete_collection(name=collection_name)
+    except ValueError:
+        # Chroma raises ValueError when the collection does not exist, which is safe to ignore.
+        return
+
+
 def index_chunks(
     pdf_path: Path,
     chunks: list[str],
