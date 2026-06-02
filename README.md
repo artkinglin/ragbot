@@ -108,3 +108,9 @@ Top-k is the number of best matching chunks returned from vector search; this pr
 
 **6. What can cause bad answers in a RAG system?**  
 Bad chunking, irrelevant retrieval, missing PDF text, weak prompts, or an LLM that ignores the supplied context can all degrade answers.
+
+## Portfolio Talking Points
+
+- Built the RAG pipeline without LangChain or LlamaIndex to show the underlying mechanics.
+- Used local embeddings to avoid embedding API keys and keep retrieval inexpensive.
+- Added debug retrieval mode so answer quality can be traced back to source chunks.
