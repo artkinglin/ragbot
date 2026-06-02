@@ -109,16 +109,21 @@ def chat_loop(
 
         retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model, top_k)
         if debug:
-            print("\nRetrieved chunks:")
-            for chunk in retrieved_chunks:
-                print(chunk)
-                print("---")
+            print_retrieved_chunks(retrieved_chunks)
 
         answer = generate_answer(query, retrieved_chunks, groq_api_key, groq_model)
 
         print("\nAssistant:")
         print(textwrap.fill(answer, width=100))
         print()
+
+
+def print_retrieved_chunks(retrieved_chunks: list[str]) -> None:
+    """Print retrieved context so users can debug the retrieval step."""
+    print("\nRetrieved chunks:")
+    for chunk in retrieved_chunks:
+        print(chunk)
+        print("---")
 
 
 def main() -> int:
