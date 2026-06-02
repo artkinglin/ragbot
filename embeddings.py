@@ -105,8 +105,12 @@ def index_chunks(
     chunks: list[str],
     model: SentenceTransformer,
     chroma_dir: Path = CHROMA_DIR,
+    reindex: bool = False,
 ):
     """Embed chunks and store them in Chroma if the PDF is not already indexed."""
+    if reindex:
+        delete_collection(pdf_path, chroma_dir)
+
     collection = get_collection(pdf_path, chroma_dir)
 
     # Reuse existing vectors so repeated runs start fast and do not duplicate data.
