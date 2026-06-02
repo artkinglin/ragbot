@@ -11,7 +11,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-from config import CHUNK_SIZE, EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME, TOP_K
+from config import CHUNK_OVERLAP, CHUNK_SIZE, EMBEDDING_MODEL_NAME, GROQ_MODEL_NAME, TOP_K
 from embeddings import index_chunks, load_embedding_model
 from generation import generate_answer
 from ingestion import chunk_text, load_pdf_text
@@ -32,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("pdf", type=Path, help="Path to the PDF you want to chat with.")
     parser.add_argument("--top-k", type=int, default=TOP_K, help="Number of chunks to retrieve.")
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE, help="Number of characters per text chunk.")
+    parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP, help="Characters repeated between neighboring chunks.")
     return parser.parse_args()
 
 
@@ -53,7 +54,7 @@ def validate_cli_options(args: argparse.Namespace) -> None:
         raise ValueError("--chunk-size must be at least 100 characters.")
 
 
-def prepare_document(pdf_path: Path, chunk_size: int):
+def prepare_document(pdf_path: Path, chunk_size: int, chunk_overlap: int):
     """Load, chunk, embed, and store a PDF in Chroma."""
     print("Loading embedding model...")
     embedding_model = load_embedding_model(EMBEDDING_MODEL_NAME)
@@ -62,7 +63,7 @@ def prepare_document(pdf_path: Path, chunk_size: int):
     text = load_pdf_text(pdf_path)
 
     print("Chunking PDF text...")
-    chunks = chunk_text(text, chunk_size=chunk_size)
+    chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     print(f"Indexing {len(chunks)} chunks in ChromaDB...")
     collection = index_chunks(pdf_path, chunks, embedding_model)
@@ -99,7 +100,7 @@ def main() -> int:
         validate_pdf_path(args.pdf)
         validate_cli_options(args)
         groq_api_key = require_groq_api_key()
-        collection, embedding_model = prepare_document(args.pdf, args.chunk_size)
+        collection, embedding_model = prepare_document(args.pdf, args.chunk_size, args.chunk_overlap)
         chat_loop(collection, embedding_model, groq_api_key, args.top_k)
         return 0
     except KeyboardInterrupt:
