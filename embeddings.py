@@ -47,12 +47,12 @@ def embed_texts(model: SentenceTransformer, texts: Iterable[str]) -> list[list[f
     return embeddings.tolist()
 
 
-def get_collection(pdf_path: Path):
+def get_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR):
     """Open the Chroma collection for one PDF."""
     document_id = create_document_id(pdf_path)
 
     # PersistentClient writes vectors to disk, so indexing survives restarts.
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    client = chromadb.PersistentClient(path=str(chroma_dir))
 
     return client.get_or_create_collection(name=f"{COLLECTION_PREFIX}_{document_id}")
 
