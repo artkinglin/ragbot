@@ -20,6 +20,7 @@ Rules:
 - Answer only from the provided context when possible.
 - If the context does not contain the answer, say you do not know from the document.
 - Be concise, but include enough detail to be useful.
+- Mention source labels, such as Source 1 or Source 2, when they support the answer.
 
 Retrieved context:
 {context}
