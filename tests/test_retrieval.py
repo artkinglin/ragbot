@@ -54,6 +54,21 @@ class RetrieveTopChunksTests(unittest.TestCase):
             ["documents", "distances", "metadatas"],
         )
 
+    def test_filters_chunks_above_max_distance(self) -> None:
+        collection = FakeCollection()
+
+        with patch("retrieval.embed_texts", return_value=[[0.1, 0.2, 0.3]]):
+            chunks = retrieve_top_chunks(
+                "What matters?",
+                collection,
+                embedding_model=object(),
+                top_k=2,
+                max_distance=0.2,
+            )
+
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("First chunk text.", chunks[0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,7 +6,7 @@ This module owns the "query -> top matching chunks" step.
 
 from sentence_transformers import SentenceTransformer
 
-from config import TOP_K
+from config import MAX_RETRIEVAL_DISTANCE, TOP_K
 from embeddings import embed_texts
 
 
@@ -15,6 +15,7 @@ def retrieve_top_chunks(
     collection,
     embedding_model: SentenceTransformer,
     top_k: int = TOP_K,
+    max_distance: float | None = MAX_RETRIEVAL_DISTANCE,
 ) -> list[str]:
     """Return the most relevant document chunks for a user query."""
     query_embedding = embed_texts(embedding_model, [query])[0]
@@ -35,6 +36,9 @@ def retrieve_top_chunks(
         zip(documents, distances, metadatas),
         start=1,
     ):
+        if max_distance is not None and distance > max_distance:
+            continue
+
         # The labels help both the LLM and the developer see where evidence came from.
         page_label = f" | page={metadata.get('page')}" if metadata.get("page") else ""
         formatted_chunks.append(

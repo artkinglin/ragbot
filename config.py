@@ -30,5 +30,8 @@ CHUNK_OVERLAP = 200
 # The requirement asks retrieval to return the top 3 relevant chunks.
 TOP_K = 3
 
+# Optional retrieval distance cutoff. Lower distances are better for Chroma queries.
+MAX_RETRIEVAL_DISTANCE = None
+
 # Low temperature makes answers more grounded and less creative.
 GROQ_TEMPERATURE = 0.2
