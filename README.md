@@ -57,11 +57,14 @@ Use `.env.example` as a reference for the environment variables this project exp
 ```powershell
 python main.py --help
 python main.py paper.pdf --top-k 5 --chunk-size 900 --chunk-overlap 150 --debug
+python main.py paper.pdf --max-distance 0.8
 python main.py paper.pdf --reindex
 python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
 ```
 
-Use `--reindex` after changing chunking settings so Chroma rebuilds stored vectors from the new chunks.
+The app automatically rebuilds the Chroma index when chunking settings or the embedding model change.
+Use `--reindex` when you want to force a rebuild anyway.
+Use `--max-distance` to drop weak retrieval matches before generation.
 Use `--debug` when you want to inspect retrieved chunks before Groq generates the final answer.
 
 ## Tests
@@ -81,6 +84,7 @@ python -m unittest discover -s tests
 - Chroma collection: a named group of stored vectors and source text.
 - Query embedding: converts the user's question into the same vector space as chunks.
 - Top-k retrieval: returns the most similar chunks, here the top 3.
+- Distance cutoff: optionally filters out weak matches before prompting the LLM.
 - Prompt grounding: gives the LLM retrieved context and rules for answering.
 - Environment variable: keeps `GROQ_API_KEY` out of source code.
 - CLI loop: keeps accepting questions until the user exits.
