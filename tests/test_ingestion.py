@@ -21,6 +21,14 @@ class ChunkTextTests(unittest.TestCase):
 
         self.assertEqual(chunks, ["short document"])
 
+    def test_prefers_word_boundaries_when_possible(self) -> None:
+        text = "alpha beta gamma delta " * 10
+
+        chunks = chunk_text(text, chunk_size=50, chunk_overlap=0)
+
+        self.assertTrue(all(not chunk.endswith("alp") for chunk in chunks))
+        self.assertTrue(all(chunk[-1].isalpha() for chunk in chunks))
+
 
 if __name__ == "__main__":
     unittest.main()

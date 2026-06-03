@@ -45,8 +45,12 @@ def chunk_text(
     while start < len(text):
         end = start + chunk_size
 
-        # Prefer a paragraph break or sentence break so chunks are readable units.
-        natural_end = max(text.rfind("\n\n", start, end), text.rfind(". ", start, end))
+        # Prefer readable boundaries so chunks do not split ideas or words unnecessarily.
+        natural_end = max(
+            text.rfind("\n\n", start, end),
+            text.rfind(". ", start, end),
+            text.rfind(" ", start, end),
+        )
         if natural_end > start + chunk_size // 2:
             end = natural_end + 1
 
