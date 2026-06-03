@@ -17,6 +17,7 @@ from config import (
     CHUNK_SIZE,
     EMBEDDING_MODEL_NAME,
     GROQ_MODEL_NAME,
+    MAX_RETRIEVAL_DISTANCE,
     TOP_K,
 )
 from embeddings import index_chunks, load_embedding_model
@@ -38,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Chat with a PDF using a raw Python RAG pipeline.")
     parser.add_argument("pdf", type=Path, help="Path to the PDF you want to chat with.")
     parser.add_argument("--top-k", type=int, default=TOP_K, help="Number of chunks to retrieve.")
+    parser.add_argument("--max-distance", type=float, default=MAX_RETRIEVAL_DISTANCE, help="Optional maximum Chroma distance to keep.")
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE, help="Number of characters per text chunk.")
     parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP, help="Characters repeated between neighboring chunks.")
     parser.add_argument("--embedding-model", default=EMBEDDING_MODEL_NAME, help="SentenceTransformers model used for local embeddings.")
@@ -61,6 +63,9 @@ def validate_cli_options(args: argparse.Namespace) -> None:
     """Fail early when numeric settings cannot produce useful retrieval."""
     if args.top_k < 1:
         raise ValueError("--top-k must be at least 1.")
+
+    if args.max_distance is not None and args.max_distance < 0:
+        raise ValueError("--max-distance cannot be negative.")
 
     if args.chunk_size < 100:
         raise ValueError("--chunk-size must be at least 100 characters.")
@@ -110,6 +115,7 @@ def chat_loop(
     embedding_model,
     groq_api_key: str,
     top_k: int,
+    max_distance: float | None,
     groq_model: str,
     debug: bool,
 ) -> None:
@@ -125,7 +131,13 @@ def chat_loop(
         if not query:
             continue
 
-        retrieved_chunks = retrieve_top_chunks(query, collection, embedding_model, top_k)
+        retrieved_chunks = retrieve_top_chunks(
+            query,
+            collection,
+            embedding_model,
+            top_k,
+            max_distance,
+        )
         if debug:
             print_retrieved_chunks(retrieved_chunks)
 
@@ -165,7 +177,15 @@ def main() -> int:
             args.chroma_dir,
             args.reindex,
         )
-        chat_loop(collection, embedding_model, groq_api_key, args.top_k, args.groq_model, args.debug)
+        chat_loop(
+            collection,
+            embedding_model,
+            groq_api_key,
+            args.top_k,
+            args.max_distance,
+            args.groq_model,
+            args.debug,
+        )
         return 0
     except KeyboardInterrupt:
         print("\nInterrupted.")

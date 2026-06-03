@@ -7,6 +7,7 @@ from main import normalize_query, validate_cli_options
 def make_args(**overrides) -> argparse.Namespace:
     values = {
         "top_k": 3,
+        "max_distance": None,
         "chunk_size": 1200,
         "chunk_overlap": 200,
     }
@@ -21,6 +22,10 @@ class ValidateCliOptionsTests(unittest.TestCase):
     def test_rejects_non_positive_top_k(self) -> None:
         with self.assertRaisesRegex(ValueError, "--top-k"):
             validate_cli_options(make_args(top_k=0))
+
+    def test_rejects_negative_max_distance(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--max-distance"):
+            validate_cli_options(make_args(max_distance=-0.1))
 
     def test_rejects_tiny_chunk_size(self) -> None:
         with self.assertRaisesRegex(ValueError, "--chunk-size"):
