@@ -67,7 +67,7 @@ Use `--debug` when you want to inspect retrieved chunks before Groq generates th
 ## Tests
 
 ```powershell
-python -m unittest discover
+python -m unittest discover -s tests
 ```
 
 ## Concepts
