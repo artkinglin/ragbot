@@ -1,0 +1,44 @@
+import argparse
+import unittest
+
+from main import normalize_query, validate_cli_options
+
+
+def make_args(**overrides) -> argparse.Namespace:
+    values = {
+        "top_k": 3,
+        "chunk_size": 1200,
+        "chunk_overlap": 200,
+    }
+    values.update(overrides)
+    return argparse.Namespace(**values)
+
+
+class ValidateCliOptionsTests(unittest.TestCase):
+    def test_accepts_default_numeric_options(self) -> None:
+        validate_cli_options(make_args())
+
+    def test_rejects_non_positive_top_k(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--top-k"):
+            validate_cli_options(make_args(top_k=0))
+
+    def test_rejects_tiny_chunk_size(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--chunk-size"):
+            validate_cli_options(make_args(chunk_size=99))
+
+    def test_rejects_negative_overlap(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--chunk-overlap"):
+            validate_cli_options(make_args(chunk_overlap=-1))
+
+    def test_rejects_overlap_at_or_above_chunk_size(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--chunk-overlap"):
+            validate_cli_options(make_args(chunk_size=100, chunk_overlap=100))
+
+
+class NormalizeQueryTests(unittest.TestCase):
+    def test_strips_terminal_input(self) -> None:
+        self.assertEqual(normalize_query("  question?  "), "question?")
+
+
+if __name__ == "__main__":
+    unittest.main()
