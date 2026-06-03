@@ -16,6 +16,7 @@ from config import CHROMA_DIR, COLLECTION_PREFIX, EMBEDDING_MODEL_NAME
 
 
 PAGE_MARKER_PATTERN = re.compile(r"\[Page (\d+)\]")
+INDEX_SETTING_KEYS = ("embedding_model", "chunk_size", "chunk_overlap")
 
 
 def create_document_id(pdf_path: Path) -> str:
@@ -66,12 +67,33 @@ def extract_page_number(chunk: str) -> int | None:
     return int(match.group(1))
 
 
-def build_chunk_metadata(pdf_path: Path, chunk: str, chunk_index: int) -> dict[str, str | int]:
+def build_index_settings(
+    embedding_model_name: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> dict[str, str | int]:
+    """Record the settings that determine stored chunk embeddings."""
+    return {
+        "embedding_model": embedding_model_name,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
+    }
+
+
+def build_chunk_metadata(
+    pdf_path: Path,
+    chunk: str,
+    chunk_index: int,
+    index_settings: dict[str, str | int] | None = None,
+) -> dict[str, str | int]:
     """Create Chroma metadata for one stored chunk."""
     metadata: dict[str, str | int] = {
         "source": str(pdf_path),
         "chunk_index": chunk_index,
     }
+
+    if index_settings:
+        metadata.update(index_settings)
 
     page_number = extract_page_number(chunk)
     if page_number is not None:
