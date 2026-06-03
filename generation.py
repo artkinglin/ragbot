@@ -34,17 +34,21 @@ Question:
 """.strip()
 
 
-def generate_answer(
+def create_groq_client(groq_api_key: str) -> Groq:
+    """Create the Groq client once for a chat session."""
+    return Groq(api_key=groq_api_key)
+
+
+def generate_answer_with_client(
     query: str,
     retrieved_chunks: list[str],
-    groq_api_key: str,
+    client: Groq,
     model_name: str = GROQ_MODEL_NAME,
 ) -> str:
-    """Call Groq with the RAG prompt and return the assistant answer."""
+    """Call Groq with an existing client and return the assistant answer."""
     if not retrieved_chunks:
         return NO_CONTEXT_ANSWER
 
-    client = Groq(api_key=groq_api_key)
     prompt = build_prompt(query, retrieved_chunks)
 
     response = client.chat.completions.create(
@@ -63,3 +67,14 @@ def generate_answer(
     )
 
     return response.choices[0].message.content or ""
+
+
+def generate_answer(
+    query: str,
+    retrieved_chunks: list[str],
+    groq_api_key: str,
+    model_name: str = GROQ_MODEL_NAME,
+) -> str:
+    """Call Groq with the RAG prompt and return the assistant answer."""
+    client = create_groq_client(groq_api_key)
+    return generate_answer_with_client(query, retrieved_chunks, client, model_name)

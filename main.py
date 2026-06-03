@@ -21,7 +21,7 @@ from config import (
     TOP_K,
 )
 from embeddings import index_chunks, load_embedding_model
-from generation import generate_answer
+from generation import create_groq_client, generate_answer_with_client
 from ingestion import chunk_text, load_pdf_text
 from retrieval import retrieve_top_chunks
 
@@ -113,7 +113,7 @@ def prepare_document(
 def chat_loop(
     collection,
     embedding_model,
-    groq_api_key: str,
+    groq_client,
     top_k: int,
     max_distance: float | None,
     groq_model: str,
@@ -141,7 +141,7 @@ def chat_loop(
         if debug:
             print_retrieved_chunks(retrieved_chunks)
 
-        answer = generate_answer(query, retrieved_chunks, groq_api_key, groq_model)
+        answer = generate_answer_with_client(query, retrieved_chunks, groq_client, groq_model)
 
         print("\nAssistant:")
         print(textwrap.fill(answer, width=100))
@@ -169,6 +169,7 @@ def main() -> int:
         validate_pdf_path(args.pdf)
         validate_cli_options(args)
         groq_api_key = require_groq_api_key()
+        groq_client = create_groq_client(groq_api_key)
         collection, embedding_model = prepare_document(
             args.pdf,
             args.chunk_size,
@@ -180,7 +181,7 @@ def main() -> int:
         chat_loop(
             collection,
             embedding_model,
-            groq_api_key,
+            groq_client,
             args.top_k,
             args.max_distance,
             args.groq_model,

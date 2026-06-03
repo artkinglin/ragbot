@@ -1,6 +1,42 @@
 import unittest
 
-from generation import NO_CONTEXT_ANSWER, build_prompt, generate_answer
+from generation import (
+    NO_CONTEXT_ANSWER,
+    build_prompt,
+    generate_answer,
+    generate_answer_with_client,
+)
+
+
+class Message:
+    content = "Grounded answer."
+
+
+class Choice:
+    message = Message()
+
+
+class Response:
+    choices = [Choice()]
+
+
+class FakeCompletions:
+    def __init__(self) -> None:
+        self.last_kwargs = None
+
+    def create(self, **kwargs):
+        self.last_kwargs = kwargs
+        return Response()
+
+
+class FakeChat:
+    def __init__(self) -> None:
+        self.completions = FakeCompletions()
+
+
+class FakeGroqClient:
+    def __init__(self) -> None:
+        self.chat = FakeChat()
 
 
 class BuildPromptTests(unittest.TestCase):
@@ -21,6 +57,15 @@ class GenerateAnswerTests(unittest.TestCase):
         answer = generate_answer("Unknown?", [], "unused-key")
 
         self.assertEqual(answer, NO_CONTEXT_ANSWER)
+
+    def test_generate_answer_with_client_uses_existing_client(self) -> None:
+        client = FakeGroqClient()
+
+        answer = generate_answer_with_client("Question?", ["Source 1\nContext."], client, "model-a")
+
+        self.assertEqual(answer, "Grounded answer.")
+        self.assertEqual(client.chat.completions.last_kwargs["model"], "model-a")
+        self.assertEqual(client.chat.completions.last_kwargs["messages"][0]["role"], "system")
 
 
 if __name__ == "__main__":
