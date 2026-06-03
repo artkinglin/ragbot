@@ -91,7 +91,16 @@ def prepare_document(
     chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     print(f"Indexing {len(chunks)} chunks in ChromaDB...")
-    collection = index_chunks(pdf_path, chunks, embedding_model, chroma_dir, reindex)
+    collection = index_chunks(
+        pdf_path,
+        chunks,
+        embedding_model,
+        chroma_dir,
+        reindex,
+        embedding_model_name,
+        chunk_size,
+        chunk_overlap,
+    )
 
     return collection, embedding_model
 

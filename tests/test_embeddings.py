@@ -1,7 +1,23 @@
 import unittest
 from pathlib import Path
 
-from embeddings import build_chunk_metadata, build_index_settings, extract_page_number
+from embeddings import (
+    build_chunk_metadata,
+    build_index_settings,
+    collection_matches_index_settings,
+    extract_page_number,
+)
+
+
+class FakeCollection:
+    def __init__(self, metadatas) -> None:
+        self.metadatas = metadatas
+
+    def count(self) -> int:
+        return len(self.metadatas)
+
+    def get(self, **kwargs):
+        return {"metadatas": self.metadatas[: kwargs["limit"]]}
 
 
 class ExtractPageNumberTests(unittest.TestCase):
@@ -49,6 +65,25 @@ class BuildIndexSettingsTests(unittest.TestCase):
                 "chunk_overlap": 200,
             },
         )
+
+
+class CollectionMatchesIndexSettingsTests(unittest.TestCase):
+    def test_matches_when_stored_settings_equal_requested_settings(self) -> None:
+        settings = build_index_settings("model-a", 1200, 200)
+        collection = FakeCollection([settings])
+
+        self.assertTrue(collection_matches_index_settings(collection, settings))
+
+    def test_does_not_match_when_collection_is_empty(self) -> None:
+        settings = build_index_settings("model-a", 1200, 200)
+
+        self.assertFalse(collection_matches_index_settings(FakeCollection([]), settings))
+
+    def test_does_not_match_when_any_setting_differs(self) -> None:
+        settings = build_index_settings("model-a", 1200, 200)
+        collection = FakeCollection([build_index_settings("model-b", 1200, 200)])
+
+        self.assertFalse(collection_matches_index_settings(collection, settings))
 
 
 if __name__ == "__main__":

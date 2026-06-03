@@ -12,7 +12,7 @@ from typing import Iterable
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from config import CHROMA_DIR, COLLECTION_PREFIX, EMBEDDING_MODEL_NAME
+from config import CHROMA_DIR, CHUNK_OVERLAP, CHUNK_SIZE, COLLECTION_PREFIX, EMBEDDING_MODEL_NAME
 
 
 PAGE_MARKER_PATTERN = re.compile(r"\[Page (\d+)\]")
@@ -122,14 +122,33 @@ def delete_collection(pdf_path: Path, chroma_dir: Path = CHROMA_DIR) -> None:
         return
 
 
+def collection_matches_index_settings(collection, index_settings: dict[str, str | int]) -> bool:
+    """Return whether an existing collection was built with the requested settings."""
+    if collection.count() == 0:
+        return False
+
+    result = collection.get(limit=1, include=["metadatas"])
+    metadatas = result.get("metadatas", [])
+    if not metadatas:
+        return False
+
+    stored_metadata = metadatas[0] or {}
+    return all(stored_metadata.get(key) == value for key, value in index_settings.items())
+
+
 def index_chunks(
     pdf_path: Path,
     chunks: list[str],
     model: SentenceTransformer,
     chroma_dir: Path = CHROMA_DIR,
     reindex: bool = False,
+    embedding_model_name: str = EMBEDDING_MODEL_NAME,
+    chunk_size: int = CHUNK_SIZE,
+    chunk_overlap: int = CHUNK_OVERLAP,
 ):
     """Embed chunks and store them in Chroma if the PDF is not already indexed."""
+    index_settings = build_index_settings(embedding_model_name, chunk_size, chunk_overlap)
+
     if reindex:
         delete_collection(pdf_path, chroma_dir)
 
@@ -137,14 +156,18 @@ def index_chunks(
 
     # Reuse existing vectors so repeated runs start fast and do not duplicate data.
     if collection.count() > 0:
-        return collection
+        if collection_matches_index_settings(collection, index_settings):
+            return collection
+
+        delete_collection(pdf_path, chroma_dir)
+        collection = get_collection(pdf_path, chroma_dir)
 
     document_id = create_document_id(pdf_path)
     embeddings = embed_texts(model, chunks)
 
     ids = [f"{document_id}_chunk_{index}" for index in range(len(chunks))]
     metadatas = [
-        build_chunk_metadata(pdf_path, chunk, index)
+        build_chunk_metadata(pdf_path, chunk, index, index_settings)
         for index, chunk in enumerate(chunks)
     ]
 
