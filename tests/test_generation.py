@@ -1,6 +1,6 @@
 import unittest
 
-from generation import build_prompt
+from generation import NO_CONTEXT_ANSWER, build_prompt, generate_answer
 
 
 class BuildPromptTests(unittest.TestCase):
@@ -14,6 +14,13 @@ class BuildPromptTests(unittest.TestCase):
         prompt = build_prompt("Unknown?", ["Source 1\nPartial context."])
 
         self.assertIn("say you do not know from the document", prompt)
+
+
+class GenerateAnswerTests(unittest.TestCase):
+    def test_returns_no_context_answer_without_calling_groq(self) -> None:
+        answer = generate_answer("Unknown?", [], "unused-key")
+
+        self.assertEqual(answer, NO_CONTEXT_ANSWER)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from config import GROQ_MODEL_NAME, GROQ_TEMPERATURE
 
 
 SYSTEM_PROMPT = "You are a careful RAG assistant that answers only from supplied context."
+NO_CONTEXT_ANSWER = "I do not know from the document because retrieval did not find relevant context."
 
 
 def build_prompt(query: str, retrieved_chunks: list[str]) -> str:
@@ -40,6 +41,9 @@ def generate_answer(
     model_name: str = GROQ_MODEL_NAME,
 ) -> str:
     """Call Groq with the RAG prompt and return the assistant answer."""
+    if not retrieved_chunks:
+        return NO_CONTEXT_ANSWER
+
     client = Groq(api_key=groq_api_key)
     prompt = build_prompt(query, retrieved_chunks)
 
