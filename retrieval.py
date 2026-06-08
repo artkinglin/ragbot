@@ -44,14 +44,14 @@ def format_retrieved_chunk(
     )
 
 
-def retrieve_top_chunks(
+def search_vector_chunks(
     query: str,
     collection,
     embedding_model: SentenceTransformer,
     top_k: int = TOP_K,
     max_distance: float | None = MAX_RETRIEVAL_DISTANCE,
-) -> list[str]:
-    """Return the most relevant document chunks for a user query."""
+) -> list[dict]:
+    """Return vector search matches with documents, metadata, and distances."""
     query_embedding = embed_texts(embedding_model, [query])[0]
 
     # Passing query_embeddings keeps Chroma from hiding embedding behavior.
@@ -65,16 +65,41 @@ def retrieve_top_chunks(
     distances = results.get("distances", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
 
-    formatted_chunks: list[str] = []
-    for rank, (document, distance, metadata) in enumerate(
+    matches: list[dict] = []
+    for index, (document, distance, metadata) in enumerate(
         zip(documents, distances, metadatas),
-        start=1,
     ):
         if max_distance is not None and distance > max_distance:
             continue
 
-        formatted_chunks.append(
-            format_retrieved_chunk(rank, document, metadata, f"distance={distance:.4f}")
+        matches.append(
+            {
+                "id": str(metadata.get("chunk_index", index)),
+                "document": document,
+                "metadata": metadata,
+                "distance": distance,
+                "vector_rank": index + 1,
+            }
         )
 
-    return formatted_chunks
+    return matches
+
+
+def retrieve_top_chunks(
+    query: str,
+    collection,
+    embedding_model: SentenceTransformer,
+    top_k: int = TOP_K,
+    max_distance: float | None = MAX_RETRIEVAL_DISTANCE,
+) -> list[str]:
+    """Return the most relevant document chunks for a user query."""
+    matches = search_vector_chunks(query, collection, embedding_model, top_k, max_distance)
+    return [
+        format_retrieved_chunk(
+            rank,
+            match["document"],
+            match["metadata"],
+            f"distance={match['distance']:.4f}",
+        )
+        for rank, match in enumerate(matches, start=1)
+    ]

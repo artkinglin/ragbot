@@ -1,7 +1,12 @@
 import unittest
 from unittest.mock import patch
 
-from retrieval import format_retrieved_chunk, load_indexed_chunks, retrieve_top_chunks
+from retrieval import (
+    format_retrieved_chunk,
+    load_indexed_chunks,
+    retrieve_top_chunks,
+    search_vector_chunks,
+)
 
 
 class FakeCollection:
@@ -50,6 +55,22 @@ class FormatRetrievedChunkTests(unittest.TestCase):
 
 
 class RetrieveTopChunksTests(unittest.TestCase):
+    def test_search_vector_chunks_returns_structured_matches(self) -> None:
+        collection = FakeCollection()
+
+        with patch("retrieval.embed_texts", return_value=[[0.1, 0.2, 0.3]]):
+            matches = search_vector_chunks(
+                "What matters?",
+                collection,
+                embedding_model=object(),
+                top_k=2,
+            )
+
+        self.assertEqual(matches[0]["document"], "First chunk text.")
+        self.assertEqual(matches[0]["metadata"]["chunk_index"], 0)
+        self.assertEqual(matches[0]["distance"], 0.12345)
+        self.assertEqual(matches[0]["vector_rank"], 1)
+
     def test_formats_retrieved_chunks_with_metadata(self) -> None:
         collection = FakeCollection()
 
