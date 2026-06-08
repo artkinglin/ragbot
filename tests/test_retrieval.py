@@ -5,6 +5,7 @@ from retrieval import (
     format_retrieved_chunk,
     load_indexed_chunks,
     retrieve_top_chunks,
+    search_bm25_chunks,
     search_vector_chunks,
 )
 
@@ -55,6 +56,21 @@ class FormatRetrievedChunkTests(unittest.TestCase):
 
 
 class RetrieveTopChunksTests(unittest.TestCase):
+    def test_search_bm25_chunks_returns_keyword_matches(self) -> None:
+        collection = FakeCollection()
+        collection.indexed_chunks = {
+            "ids": ["doc_chunk_0", "doc_chunk_1"],
+            "documents": ["alpha beta beta", "gamma delta"],
+            "metadatas": [{"chunk_index": 0}, {"chunk_index": 1}],
+        }
+
+        matches = search_bm25_chunks("beta", collection, top_k=2)
+
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["document"], "alpha beta beta")
+        self.assertGreater(matches[0]["bm25_score"], 0)
+        self.assertEqual(matches[0]["bm25_rank"], 1)
+
     def test_search_vector_chunks_returns_structured_matches(self) -> None:
         collection = FakeCollection()
 

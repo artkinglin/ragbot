@@ -6,6 +6,7 @@ This module owns the "query -> top matching chunks" step.
 
 from sentence_transformers import SentenceTransformer
 
+from bm25 import BM25Index
 from config import MAX_RETRIEVAL_DISTANCE, TOP_K
 from embeddings import embed_texts
 
@@ -83,6 +84,34 @@ def search_vector_chunks(
         )
 
     return matches
+
+
+def search_bm25_chunks(query: str, collection, top_k: int = TOP_K) -> list[dict]:
+    """Return BM25 keyword matches from the indexed Chroma documents."""
+    indexed_chunks = load_indexed_chunks(collection)
+    documents = [chunk["document"] for chunk in indexed_chunks]
+    bm25_index = BM25Index(documents)
+    scores = bm25_index.score(query)
+
+    matches: list[dict] = []
+    for chunk, score in zip(indexed_chunks, scores):
+        if score <= 0:
+            continue
+
+        matches.append(
+            {
+                "id": chunk["id"],
+                "document": chunk["document"],
+                "metadata": chunk["metadata"],
+                "bm25_score": score,
+            }
+        )
+
+    matches.sort(key=lambda match: match["bm25_score"], reverse=True)
+    for index, match in enumerate(matches, start=1):
+        match["bm25_rank"] = index
+
+    return matches[:top_k]
 
 
 def retrieve_top_chunks(
