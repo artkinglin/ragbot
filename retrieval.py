@@ -10,6 +10,26 @@ from config import MAX_RETRIEVAL_DISTANCE, TOP_K
 from embeddings import embed_texts
 
 
+def load_indexed_chunks(collection) -> list[dict]:
+    """Load indexed Chroma chunks with their metadata."""
+    results = collection.get(include=["documents", "metadatas"])
+    documents = results.get("documents", [])
+    metadatas = results.get("metadatas", [])
+    ids = results.get("ids", [])
+
+    chunks: list[dict] = []
+    for index, document in enumerate(documents):
+        chunks.append(
+            {
+                "id": ids[index] if index < len(ids) else str(index),
+                "document": document,
+                "metadata": metadatas[index] if index < len(metadatas) else {},
+            }
+        )
+
+    return chunks
+
+
 def retrieve_top_chunks(
     query: str,
     collection,

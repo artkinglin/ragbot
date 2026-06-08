@@ -1,12 +1,20 @@
 import unittest
 from unittest.mock import patch
 
-from retrieval import retrieve_top_chunks
+from retrieval import load_indexed_chunks, retrieve_top_chunks
 
 
 class FakeCollection:
     def __init__(self) -> None:
         self.last_query_kwargs = None
+        self.indexed_chunks = {
+            "ids": ["doc_chunk_0", "doc_chunk_1"],
+            "documents": ["First chunk text.", "Second chunk text."],
+            "metadatas": [{"chunk_index": 0, "page": 4}, {"chunk_index": 1}],
+        }
+
+    def get(self, **kwargs):
+        return self.indexed_chunks
 
     def query(self, **kwargs):
         self.last_query_kwargs = kwargs
@@ -15,6 +23,17 @@ class FakeCollection:
             "distances": [[0.12345, 0.67891]],
             "metadatas": [[{"chunk_index": 0, "page": 4}, {"chunk_index": 1}]],
         }
+
+
+class LoadIndexedChunksTests(unittest.TestCase):
+    def test_loads_documents_with_ids_and_metadata(self) -> None:
+        collection = FakeCollection()
+
+        chunks = load_indexed_chunks(collection)
+
+        self.assertEqual(chunks[0]["id"], "doc_chunk_0")
+        self.assertEqual(chunks[0]["document"], "First chunk text.")
+        self.assertEqual(chunks[0]["metadata"]["page"], 4)
 
 
 class RetrieveTopChunksTests(unittest.TestCase):
