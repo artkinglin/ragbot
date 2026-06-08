@@ -7,6 +7,10 @@ from main import normalize_query, validate_cli_options
 def make_args(**overrides) -> argparse.Namespace:
     values = {
         "top_k": 3,
+        "vector_candidates": 8,
+        "bm25_candidates": 8,
+        "vector_weight": 1.0,
+        "bm25_weight": 1.0,
         "max_distance": None,
         "chunk_size": 1200,
         "chunk_overlap": 200,
@@ -26,6 +30,26 @@ class ValidateCliOptionsTests(unittest.TestCase):
     def test_rejects_negative_max_distance(self) -> None:
         with self.assertRaisesRegex(ValueError, "--max-distance"):
             validate_cli_options(make_args(max_distance=-0.1))
+
+    def test_rejects_non_positive_vector_candidates(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--vector-candidates"):
+            validate_cli_options(make_args(vector_candidates=0))
+
+    def test_rejects_non_positive_bm25_candidates(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--bm25-candidates"):
+            validate_cli_options(make_args(bm25_candidates=0))
+
+    def test_rejects_negative_vector_weight(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--vector-weight"):
+            validate_cli_options(make_args(vector_weight=-0.1))
+
+    def test_rejects_negative_bm25_weight(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--bm25-weight"):
+            validate_cli_options(make_args(bm25_weight=-0.1))
+
+    def test_rejects_zero_vector_and_bm25_weights(self) -> None:
+        with self.assertRaisesRegex(ValueError, "retrieval weight"):
+            validate_cli_options(make_args(vector_weight=0, bm25_weight=0))
 
     def test_rejects_tiny_chunk_size(self) -> None:
         with self.assertRaisesRegex(ValueError, "--chunk-size"):
