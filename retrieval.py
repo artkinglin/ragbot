@@ -45,6 +45,54 @@ def format_retrieved_chunk(
     )
 
 
+def chunk_key(match: dict) -> str:
+    """Return a stable key for merging vector and BM25 matches."""
+    metadata = match.get("metadata") or {}
+    source = metadata.get("source", "")
+    chunk_index = metadata.get("chunk_index")
+    if chunk_index is not None:
+        return f"{source}:{chunk_index}"
+
+    return str(match.get("id", match.get("document", "")))
+
+
+def reciprocal_rank(rank: int, rank_constant: int = 60) -> float:
+    """Convert a result rank into a reciprocal-rank fusion score."""
+    return 1 / (rank_constant + rank)
+
+
+def fuse_ranked_matches(
+    vector_matches: list[dict],
+    bm25_matches: list[dict],
+    top_k: int = TOP_K,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
+) -> list[dict]:
+    """Merge vector and BM25 matches using weighted reciprocal-rank fusion."""
+    fused: dict[str, dict] = {}
+
+    for match in vector_matches:
+        key = chunk_key(match)
+        fused.setdefault(key, dict(match))
+        fused[key]["vector_rank"] = match["vector_rank"]
+        fused[key]["hybrid_score"] = fused[key].get("hybrid_score", 0.0) + (
+            vector_weight * reciprocal_rank(match["vector_rank"])
+        )
+
+    for match in bm25_matches:
+        key = chunk_key(match)
+        fused.setdefault(key, dict(match))
+        fused[key]["bm25_rank"] = match["bm25_rank"]
+        fused[key]["bm25_score"] = match["bm25_score"]
+        fused[key]["hybrid_score"] = fused[key].get("hybrid_score", 0.0) + (
+            bm25_weight * reciprocal_rank(match["bm25_rank"])
+        )
+
+    matches = list(fused.values())
+    matches.sort(key=lambda match: match["hybrid_score"], reverse=True)
+    return matches[:top_k]
+
+
 def search_vector_chunks(
     query: str,
     collection,

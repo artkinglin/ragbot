@@ -3,7 +3,9 @@ from unittest.mock import patch
 
 from retrieval import (
     format_retrieved_chunk,
+    fuse_ranked_matches,
     load_indexed_chunks,
+    reciprocal_rank,
     retrieve_top_chunks,
     search_bm25_chunks,
     search_vector_chunks,
@@ -53,6 +55,46 @@ class FormatRetrievedChunkTests(unittest.TestCase):
 
         self.assertIn("Source 1 | chunk=2 | page=9 | bm25=1.2345", chunk)
         self.assertIn("Important text.", chunk)
+
+
+class FuseRankedMatchesTests(unittest.TestCase):
+    def test_reciprocal_rank_decreases_with_rank(self) -> None:
+        self.assertGreater(reciprocal_rank(1), reciprocal_rank(2))
+
+    def test_fuses_vector_and_bm25_matches_by_chunk_metadata(self) -> None:
+        vector_matches = [
+            {
+                "id": "vector-a",
+                "document": "Shared text.",
+                "metadata": {"source": "doc.pdf", "chunk_index": 0},
+                "distance": 0.2,
+                "vector_rank": 1,
+            }
+        ]
+        bm25_matches = [
+            {
+                "id": "bm25-a",
+                "document": "Shared text.",
+                "metadata": {"source": "doc.pdf", "chunk_index": 0},
+                "bm25_score": 2.0,
+                "bm25_rank": 1,
+            },
+            {
+                "id": "bm25-b",
+                "document": "Keyword only.",
+                "metadata": {"source": "doc.pdf", "chunk_index": 1},
+                "bm25_score": 1.0,
+                "bm25_rank": 2,
+            },
+        ]
+
+        fused = fuse_ranked_matches(vector_matches, bm25_matches, top_k=2)
+
+        self.assertEqual(len(fused), 2)
+        self.assertEqual(fused[0]["metadata"]["chunk_index"], 0)
+        self.assertIn("vector_rank", fused[0])
+        self.assertIn("bm25_rank", fused[0])
+        self.assertGreater(fused[0]["hybrid_score"], fused[1]["hybrid_score"])
 
 
 class RetrieveTopChunksTests(unittest.TestCase):
