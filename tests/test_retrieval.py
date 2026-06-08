@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from retrieval import load_indexed_chunks, retrieve_top_chunks
+from retrieval import format_retrieved_chunk, load_indexed_chunks, retrieve_top_chunks
 
 
 class FakeCollection:
@@ -34,6 +34,19 @@ class LoadIndexedChunksTests(unittest.TestCase):
         self.assertEqual(chunks[0]["id"], "doc_chunk_0")
         self.assertEqual(chunks[0]["document"], "First chunk text.")
         self.assertEqual(chunks[0]["metadata"]["page"], 4)
+
+
+class FormatRetrievedChunkTests(unittest.TestCase):
+    def test_formats_metadata_and_score_label(self) -> None:
+        chunk = format_retrieved_chunk(
+            1,
+            "Important text.",
+            {"chunk_index": 2, "page": 9},
+            "bm25=1.2345",
+        )
+
+        self.assertIn("Source 1 | chunk=2 | page=9 | bm25=1.2345", chunk)
+        self.assertIn("Important text.", chunk)
 
 
 class RetrieveTopChunksTests(unittest.TestCase):

@@ -30,6 +30,20 @@ def load_indexed_chunks(collection) -> list[dict]:
     return chunks
 
 
+def format_retrieved_chunk(
+    rank: int,
+    document: str,
+    metadata: dict,
+    score_label: str,
+) -> str:
+    """Format one retrieved chunk with source metadata."""
+    page_label = f" | page={metadata.get('page')}" if metadata.get("page") else ""
+    return (
+        f"Source {rank} | chunk={metadata.get('chunk_index')}{page_label} | {score_label}\n"
+        f"{document}"
+    )
+
+
 def retrieve_top_chunks(
     query: str,
     collection,
@@ -59,11 +73,8 @@ def retrieve_top_chunks(
         if max_distance is not None and distance > max_distance:
             continue
 
-        # The labels help both the LLM and the developer see where evidence came from.
-        page_label = f" | page={metadata.get('page')}" if metadata.get("page") else ""
         formatted_chunks.append(
-            f"Source {rank} | chunk={metadata.get('chunk_index')}{page_label} | distance={distance:.4f}\n"
-            f"{document}"
+            format_retrieved_chunk(rank, document, metadata, f"distance={distance:.4f}")
         )
 
     return formatted_chunks
