@@ -1,13 +1,13 @@
 # Raw Python RAG Chatbot
 
-This project is a small Retrieval Augmented Generation chatbot backbone. It reads a PDF, chunks the text, embeds the chunks locally with SentenceTransformers, stores vectors in ChromaDB, retrieves the top 3 matching chunks for each question, and asks Groq to answer from that retrieved context.
+This project is a small Retrieval Augmented Generation chatbot backbone. It reads a PDF, chunks the text, embeds the chunks locally with SentenceTransformers, stores vectors in ChromaDB, retrieves matching chunks with hybrid BM25 keyword search plus vector search, and asks Groq to answer from that retrieved context.
 
 No LangChain. No LlamaIndex. The goal is to make every moving part visible.
 
 ## Pipeline
 
 ```text
-PDF -> text -> chunks -> embeddings -> ChromaDB -> top chunks -> Groq -> answer
+PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fused top chunks -> Groq -> answer
 ```
 
 ## Common Workflow
@@ -22,7 +22,8 @@ PDF -> text -> chunks -> embeddings -> ChromaDB -> top chunks -> Groq -> answer
 - `config.py` - all settings in one place.
 - `ingestion.py` - PDF loading and chunking.
 - `embeddings.py` - turns text into vectors and stores them in ChromaDB.
-- `retrieval.py` - finds relevant chunks for a query.
+- `bm25.py` - scores exact keyword matches with local BM25.
+- `retrieval.py` - finds relevant chunks with BM25, vector search, and rank fusion.
 - `generation.py` - builds the prompt and calls Groq.
 - `main.py` - CLI entry point that ties everything together.
 - `README.md` - setup guide, learning notes, and interview Q&A.
@@ -57,6 +58,7 @@ Use `.env.example` as a reference for the environment variables this project exp
 ```powershell
 python main.py --help
 python main.py paper.pdf --top-k 5 --chunk-size 900 --chunk-overlap 150 --debug
+python main.py paper.pdf --vector-candidates 12 --bm25-candidates 12 --vector-weight 1.0 --bm25-weight 1.0
 python main.py paper.pdf --max-distance 0.8
 python main.py paper.pdf --reindex
 python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
@@ -66,6 +68,7 @@ The app automatically rebuilds the Chroma index when chunking settings or the em
 Use `--reindex` when you want to force a rebuild anyway.
 Use `--max-distance` to drop weak retrieval matches before generation.
 Use `--debug` when you want to inspect retrieved chunks before Groq generates the final answer.
+Use `--vector-candidates`, `--bm25-candidates`, `--vector-weight`, and `--bm25-weight` to tune hybrid retrieval.
 
 ## Tests
 
@@ -84,6 +87,9 @@ python -m unittest discover -s tests
 - Chroma collection: a named group of stored vectors and source text.
 - Query embedding: converts the user's question into the same vector space as chunks.
 - Top-k retrieval: returns the most similar chunks, here the top 3.
+- BM25: keyword search that rewards exact term overlap with the question.
+- Hybrid retrieval: combines BM25 and vector ranks so exact keywords and semantic similarity can both surface evidence.
+- Reciprocal-rank fusion: merges ranked lists without comparing unrelated raw score scales.
 - Distance cutoff: optionally filters out weak matches before prompting the LLM.
 - Prompt grounding: gives the LLM retrieved context and rules for answering.
 - Environment variable: keeps `GROQ_API_KEY` out of source code.
@@ -93,13 +99,14 @@ python -m unittest discover -s tests
 
 - Scanned PDFs need OCR before `pypdf` can extract useful text.
 - Character chunking is easy to learn from, but token chunking is more precise.
-- Retrieved chunks can still be irrelevant if the embedding model does not capture the question well.
+- Retrieved chunks can still be irrelevant if both lexical and semantic signals miss the user's intent.
 
 ## Things To Modify
 
 1. Change `CHUNK_SIZE` and `CHUNK_OVERLAP` in `config.py` and compare answer quality.
-2. Print `retrieved_chunks` in `main.py` before generation to inspect what the retriever found.
+2. Use `--debug` to inspect what the hybrid retriever found before generation.
 3. Swap `EMBEDDING_MODEL_NAME` for another SentenceTransformers model and compare speed and relevance.
+4. Adjust `VECTOR_WEIGHT` and `BM25_WEIGHT` in `config.py` to compare semantic-heavy and keyword-heavy retrieval.
 
 ## Interview Q&A
 
@@ -113,16 +120,20 @@ Chunking makes retrieval more precise because the system can return only the par
 An embedding is a vector representation of text where semantically similar text ends up near each other in vector space.
 
 **4. Why use ChromaDB?**  
-ChromaDB stores embeddings locally and provides similarity search, so the app can quickly find chunks close to the user's query.
+ChromaDB stores embeddings locally and provides similarity search, so the app can quickly find chunks semantically close to the user's query.
 
-**5. What does top-k mean?**  
+**5. Why add BM25?**  
+BM25 catches exact terms, names, acronyms, and numbers that embedding search can miss or under-rank.
+
+**6. What does top-k mean?**  
 Top-k is the number of best matching chunks returned from vector search; this project uses `TOP_K = 3`.
 
-**6. What can cause bad answers in a RAG system?**  
+**7. What can cause bad answers in a RAG system?**  
 Bad chunking, irrelevant retrieval, missing PDF text, weak prompts, or an LLM that ignores the supplied context can all degrade answers.
 
 ## Portfolio Talking Points
 
 - Built the RAG pipeline without LangChain or LlamaIndex to show the underlying mechanics.
+- Added hybrid BM25 plus vector retrieval with reciprocal-rank fusion.
 - Used local embeddings to avoid embedding API keys and keep retrieval inexpensive.
 - Added debug retrieval mode so answer quality can be traced back to source chunks.
