@@ -162,6 +162,57 @@ def search_bm25_chunks(query: str, collection, top_k: int = TOP_K) -> list[dict]
     return matches[:top_k]
 
 
+def format_hybrid_score_label(match: dict) -> str:
+    """Build a readable score label for a hybrid match."""
+    labels = [f"hybrid={match['hybrid_score']:.4f}"]
+    if "vector_rank" in match:
+        labels.append(f"vector_rank={match['vector_rank']}")
+    if "bm25_rank" in match:
+        labels.append(f"bm25_rank={match['bm25_rank']}")
+    return " | ".join(labels)
+
+
+def retrieve_hybrid_chunks(
+    query: str,
+    collection,
+    embedding_model: SentenceTransformer,
+    top_k: int = TOP_K,
+    max_distance: float | None = MAX_RETRIEVAL_DISTANCE,
+    vector_candidates: int | None = None,
+    bm25_candidates: int | None = None,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
+) -> list[str]:
+    """Return top chunks from fused vector and BM25 retrieval."""
+    vector_limit = vector_candidates or top_k
+    bm25_limit = bm25_candidates or top_k
+    vector_matches = search_vector_chunks(
+        query,
+        collection,
+        embedding_model,
+        vector_limit,
+        max_distance,
+    )
+    bm25_matches = search_bm25_chunks(query, collection, bm25_limit)
+    fused_matches = fuse_ranked_matches(
+        vector_matches,
+        bm25_matches,
+        top_k,
+        vector_weight,
+        bm25_weight,
+    )
+
+    return [
+        format_retrieved_chunk(
+            rank,
+            match["document"],
+            match["metadata"],
+            format_hybrid_score_label(match),
+        )
+        for rank, match in enumerate(fused_matches, start=1)
+    ]
+
+
 def retrieve_top_chunks(
     query: str,
     collection,

@@ -6,6 +6,7 @@ from retrieval import (
     fuse_ranked_matches,
     load_indexed_chunks,
     reciprocal_rank,
+    retrieve_hybrid_chunks,
     retrieve_top_chunks,
     search_bm25_chunks,
     search_vector_chunks,
@@ -98,6 +99,27 @@ class FuseRankedMatchesTests(unittest.TestCase):
 
 
 class RetrieveTopChunksTests(unittest.TestCase):
+    def test_retrieve_hybrid_chunks_formats_fused_matches(self) -> None:
+        collection = FakeCollection()
+        collection.indexed_chunks = {
+            "ids": ["doc_chunk_0", "doc_chunk_1"],
+            "documents": ["First chunk text.", "keyword keyword match"],
+            "metadatas": [{"chunk_index": 0, "page": 4}, {"chunk_index": 1}],
+        }
+
+        with patch("retrieval.embed_texts", return_value=[[0.1, 0.2, 0.3]]):
+            chunks = retrieve_hybrid_chunks(
+                "keyword",
+                collection,
+                embedding_model=object(),
+                top_k=2,
+            )
+
+        self.assertEqual(len(chunks), 2)
+        self.assertIn("hybrid=", chunks[0])
+        self.assertIn("Source 1", chunks[0])
+        self.assertTrue(any("bm25_rank=" in chunk for chunk in chunks))
+
     def test_search_bm25_chunks_returns_keyword_matches(self) -> None:
         collection = FakeCollection()
         collection.indexed_chunks = {
