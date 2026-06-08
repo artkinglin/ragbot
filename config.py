@@ -30,6 +30,14 @@ CHUNK_OVERLAP = 200
 # The requirement asks retrieval to return the top 3 relevant chunks.
 TOP_K = 3
 
+# Hybrid retrieval fetches a wider candidate pool before fusing results.
+VECTOR_CANDIDATES = 8
+BM25_CANDIDATES = 8
+
+# Equal weights make lexical and semantic rank signals equally important.
+VECTOR_WEIGHT = 1.0
+BM25_WEIGHT = 1.0
+
 # Optional retrieval distance cutoff. Lower distances are better for Chroma queries.
 MAX_RETRIEVAL_DISTANCE = None
 
