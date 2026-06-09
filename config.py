@@ -38,6 +38,10 @@ BM25_CANDIDATES = 8
 VECTOR_WEIGHT = 1.0
 BM25_WEIGHT = 1.0
 
+# Cross-encoder reranking scores final candidate query/chunk pairs directly.
+RERANK_MODEL_NAME = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+RERANK_CANDIDATES = 8
+
 # Optional retrieval distance cutoff. Lower distances are better for Chroma queries.
 MAX_RETRIEVAL_DISTANCE = None
 
