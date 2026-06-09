@@ -1,13 +1,13 @@
 # Raw Python RAG Chatbot
 
-This project is a small Retrieval Augmented Generation chatbot backbone. It reads a PDF, chunks the text, embeds the chunks locally with SentenceTransformers, stores vectors in ChromaDB, retrieves matching chunks with hybrid BM25 keyword search plus vector search, and asks Groq to answer from that retrieved context.
+This project is a small Retrieval Augmented Generation chatbot backbone. It reads a PDF, chunks the text, embeds the chunks locally with SentenceTransformers, stores vectors in ChromaDB, retrieves matching chunks with hybrid BM25 keyword search plus vector search, reranks the fused candidates with a cross-encoder, and asks Groq to answer from that retrieved context.
 
 No LangChain. No LlamaIndex. The goal is to make every moving part visible.
 
 ## Pipeline
 
 ```text
-PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fused top chunks -> Groq -> answer
+PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fused candidates -> cross-encoder rerank -> Groq -> answer
 ```
 
 ## Common Workflow
@@ -23,7 +23,8 @@ PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fu
 - `ingestion.py` - PDF loading and chunking.
 - `embeddings.py` - turns text into vectors and stores them in ChromaDB.
 - `bm25.py` - scores exact keyword matches with local BM25.
-- `retrieval.py` - finds relevant chunks with BM25, vector search, and rank fusion.
+- `reranking.py` - reranks fused candidates with a cross-encoder.
+- `retrieval.py` - finds relevant chunks with BM25, vector search, rank fusion, and reranking.
 - `generation.py` - builds the prompt and calls Groq.
 - `main.py` - CLI entry point that ties everything together.
 - `README.md` - setup guide, learning notes, and interview Q&A.
@@ -59,6 +60,8 @@ Use `.env.example` as a reference for the environment variables this project exp
 python main.py --help
 python main.py paper.pdf --top-k 5 --chunk-size 900 --chunk-overlap 150 --debug
 python main.py paper.pdf --vector-candidates 12 --bm25-candidates 12 --vector-weight 1.0 --bm25-weight 1.0
+python main.py paper.pdf --rerank-candidates 12 --rerank-model cross-encoder/ms-marco-MiniLM-L-6-v2
+python main.py paper.pdf --no-rerank
 python main.py paper.pdf --max-distance 0.8
 python main.py paper.pdf --reindex
 python main.py paper.pdf --embedding-model sentence-transformers/all-MiniLM-L6-v2
@@ -69,6 +72,7 @@ Use `--reindex` when you want to force a rebuild anyway.
 Use `--max-distance` to drop weak retrieval matches before generation.
 Use `--debug` when you want to inspect retrieved chunks before Groq generates the final answer.
 Use `--vector-candidates`, `--bm25-candidates`, `--vector-weight`, and `--bm25-weight` to tune hybrid retrieval.
+Use `--rerank-candidates` and `--rerank-model` to tune cross-encoder reranking, or `--no-rerank` for faster hybrid-only retrieval.
 
 ## Tests
 
@@ -90,6 +94,7 @@ python -m unittest discover -s tests
 - BM25: keyword search that rewards exact term overlap with the question.
 - Hybrid retrieval: combines BM25 and vector ranks so exact keywords and semantic similarity can both surface evidence.
 - Reciprocal-rank fusion: merges ranked lists without comparing unrelated raw score scales.
+- Cross-encoder reranking: scores each question/chunk pair directly after retrieval to improve final ordering.
 - Distance cutoff: optionally filters out weak matches before prompting the LLM.
 - Prompt grounding: gives the LLM retrieved context and rules for answering.
 - Environment variable: keeps `GROQ_API_KEY` out of source code.
@@ -128,12 +133,16 @@ BM25 catches exact terms, names, acronyms, and numbers that embedding search can
 **6. What does top-k mean?**  
 Top-k is the number of best matching chunks returned from vector search; this project uses `TOP_K = 3`.
 
-**7. What can cause bad answers in a RAG system?**  
+**7. Why rerank after hybrid retrieval?**  
+Hybrid retrieval is good at gathering candidates. A cross-encoder is better at deciding which candidate most directly answers the specific question.
+
+**8. What can cause bad answers in a RAG system?**  
 Bad chunking, irrelevant retrieval, missing PDF text, weak prompts, or an LLM that ignores the supplied context can all degrade answers.
 
 ## Portfolio Talking Points
 
 - Built the RAG pipeline without LangChain or LlamaIndex to show the underlying mechanics.
 - Added hybrid BM25 plus vector retrieval with reciprocal-rank fusion.
+- Added cross-encoder reranking to improve final context ordering.
 - Used local embeddings to avoid embedding API keys and keep retrieval inexpensive.
 - Added debug retrieval mode so answer quality can be traced back to source chunks.
