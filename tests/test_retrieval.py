@@ -36,7 +36,7 @@ class FakeCollection:
 
 class FakeReranker:
     def predict(self, pairs):
-        return [0.1, 0.9]
+        return [0.9 if "Second" in document else 0.1 for _, document in pairs]
 
 
 class LoadIndexedChunksTests(unittest.TestCase):
@@ -144,7 +144,7 @@ class RetrieveTopChunksTests(unittest.TestCase):
             )
 
         self.assertEqual(len(chunks), 1)
-        self.assertIn("keyword keyword match", chunks[0])
+        self.assertIn("chunk=1", chunks[0])
         self.assertIn("rerank=0.9000", chunks[0])
 
     def test_search_bm25_chunks_returns_keyword_matches(self) -> None:
