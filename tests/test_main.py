@@ -11,6 +11,7 @@ def make_args(**overrides) -> argparse.Namespace:
         "bm25_candidates": 8,
         "vector_weight": 1.0,
         "bm25_weight": 1.0,
+        "rerank_candidates": 8,
         "max_distance": None,
         "chunk_size": 1200,
         "chunk_overlap": 200,
@@ -50,6 +51,10 @@ class ValidateCliOptionsTests(unittest.TestCase):
     def test_rejects_zero_vector_and_bm25_weights(self) -> None:
         with self.assertRaisesRegex(ValueError, "retrieval weight"):
             validate_cli_options(make_args(vector_weight=0, bm25_weight=0))
+
+    def test_rejects_non_positive_rerank_candidates(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--rerank-candidates"):
+            validate_cli_options(make_args(rerank_candidates=0))
 
     def test_rejects_tiny_chunk_size(self) -> None:
         with self.assertRaisesRegex(ValueError, "--chunk-size"):

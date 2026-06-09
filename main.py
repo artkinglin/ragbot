@@ -38,6 +38,8 @@ from config import (
     BM25_WEIGHT,
     GROQ_MODEL_NAME,
     MAX_RETRIEVAL_DISTANCE,
+    RERANK_CANDIDATES,
+    RERANK_MODEL_NAME,
     TOP_K,
     VECTOR_CANDIDATES,
     VECTOR_WEIGHT,
@@ -45,6 +47,7 @@ from config import (
 from embeddings import index_chunks, load_embedding_model
 from generation import create_groq_client, generate_answer_with_client
 from ingestion import chunk_text, load_pdf_text
+from reranking import load_cross_encoder_model
 from retrieval import retrieve_hybrid_chunks
 
 
@@ -65,6 +68,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bm25-candidates", type=int, default=BM25_CANDIDATES, help="BM25 keyword candidates to consider before fusion.")
     parser.add_argument("--vector-weight", type=float, default=VECTOR_WEIGHT, help="Weight for vector ranks during hybrid fusion.")
     parser.add_argument("--bm25-weight", type=float, default=BM25_WEIGHT, help="Weight for BM25 ranks during hybrid fusion.")
+    parser.add_argument("--rerank-candidates", type=int, default=RERANK_CANDIDATES, help="Fused candidates to rerank before final top-k.")
+    parser.add_argument("--rerank-model", default=RERANK_MODEL_NAME, help="Cross-encoder model used to rerank fused candidates.")
+    parser.add_argument("--no-rerank", action="store_true", help="Disable cross-encoder reranking and use hybrid fusion only.")
     parser.add_argument("--max-distance", type=float, default=MAX_RETRIEVAL_DISTANCE, help="Optional maximum Chroma distance to keep.")
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE, help="Number of characters per text chunk.")
     parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP, help="Characters repeated between neighboring chunks.")
@@ -107,6 +113,9 @@ def validate_cli_options(args: argparse.Namespace) -> None:
 
     if args.vector_weight == 0 and args.bm25_weight == 0:
         raise ValueError("At least one retrieval weight must be greater than zero.")
+
+    if args.rerank_candidates < 1:
+        raise ValueError("--rerank-candidates must be at least 1.")
 
     if args.chunk_size < 100:
         raise ValueError("--chunk-size must be at least 100 characters.")
@@ -151,15 +160,26 @@ def prepare_document(
     return collection, embedding_model
 
 
+def prepare_reranker(rerank_model_name: str, no_rerank: bool):
+    """Load the cross-encoder reranker unless disabled."""
+    if no_rerank:
+        return None
+
+    print("Loading cross-encoder reranker...")
+    return load_cross_encoder_model(rerank_model_name)
+
+
 def chat_loop(
     collection,
     embedding_model,
+    reranker,
     groq_client,
     top_k: int,
     vector_candidates: int,
     bm25_candidates: int,
     vector_weight: float,
     bm25_weight: float,
+    rerank_candidates: int,
     max_distance: float | None,
     groq_model: str,
     debug: bool,
@@ -186,6 +206,8 @@ def chat_loop(
             bm25_candidates,
             vector_weight,
             bm25_weight,
+            reranker,
+            rerank_candidates,
         )
         if debug:
             print_retrieved_chunks(retrieved_chunks)
@@ -227,15 +249,18 @@ def main() -> int:
             args.chroma_dir,
             args.reindex,
         )
+        reranker = prepare_reranker(args.rerank_model, args.no_rerank)
         chat_loop(
             collection,
             embedding_model,
+            reranker,
             groq_client,
             args.top_k,
             args.vector_candidates,
             args.bm25_candidates,
             args.vector_weight,
             args.bm25_weight,
+            args.rerank_candidates,
             args.max_distance,
             args.groq_model,
             args.debug,
