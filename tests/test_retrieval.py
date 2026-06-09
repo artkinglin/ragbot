@@ -34,6 +34,11 @@ class FakeCollection:
         }
 
 
+class FakeReranker:
+    def predict(self, pairs):
+        return [0.1, 0.9]
+
+
 class LoadIndexedChunksTests(unittest.TestCase):
     def test_loads_documents_with_ids_and_metadata(self) -> None:
         collection = FakeCollection()
@@ -119,6 +124,28 @@ class RetrieveTopChunksTests(unittest.TestCase):
         self.assertIn("hybrid=", chunks[0])
         self.assertIn("Source 1", chunks[0])
         self.assertTrue(any("bm25_rank=" in chunk for chunk in chunks))
+
+    def test_retrieve_hybrid_chunks_can_rerank_fused_candidates(self) -> None:
+        collection = FakeCollection()
+        collection.indexed_chunks = {
+            "ids": ["doc_chunk_0", "doc_chunk_1"],
+            "documents": ["First chunk text.", "keyword keyword match"],
+            "metadatas": [{"chunk_index": 0, "page": 4}, {"chunk_index": 1}],
+        }
+
+        with patch("retrieval.embed_texts", return_value=[[0.1, 0.2, 0.3]]):
+            chunks = retrieve_hybrid_chunks(
+                "keyword",
+                collection,
+                embedding_model=object(),
+                top_k=1,
+                reranker=FakeReranker(),
+                rerank_candidates=2,
+            )
+
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("keyword keyword match", chunks[0])
+        self.assertIn("rerank=0.9000", chunks[0])
 
     def test_search_bm25_chunks_returns_keyword_matches(self) -> None:
         collection = FakeCollection()

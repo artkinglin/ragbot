@@ -9,6 +9,7 @@ from sentence_transformers import SentenceTransformer
 from bm25 import BM25Index
 from config import MAX_RETRIEVAL_DISTANCE, TOP_K
 from embeddings import embed_texts
+from reranking import rerank_matches
 
 
 def load_indexed_chunks(collection) -> list[dict]:
@@ -164,7 +165,10 @@ def search_bm25_chunks(query: str, collection, top_k: int = TOP_K) -> list[dict]
 
 def format_hybrid_score_label(match: dict) -> str:
     """Build a readable score label for a hybrid match."""
-    labels = [f"hybrid={match['hybrid_score']:.4f}"]
+    labels = []
+    if "rerank_score" in match:
+        labels.append(f"rerank={match['rerank_score']:.4f}")
+    labels.append(f"hybrid={match['hybrid_score']:.4f}")
     if "vector_rank" in match:
         labels.append(f"vector_rank={match['vector_rank']}")
     if "bm25_rank" in match:
@@ -182,10 +186,13 @@ def retrieve_hybrid_chunks(
     bm25_candidates: int | None = None,
     vector_weight: float = 1.0,
     bm25_weight: float = 1.0,
+    reranker=None,
+    rerank_candidates: int | None = None,
 ) -> list[str]:
     """Return top chunks from fused vector and BM25 retrieval."""
     vector_limit = vector_candidates or top_k
     bm25_limit = bm25_candidates or top_k
+    fused_limit = rerank_candidates or top_k
     vector_matches = search_vector_chunks(
         query,
         collection,
@@ -197,9 +204,14 @@ def retrieve_hybrid_chunks(
     fused_matches = fuse_ranked_matches(
         vector_matches,
         bm25_matches,
-        top_k,
+        fused_limit,
         vector_weight,
         bm25_weight,
+    )
+    final_matches = (
+        rerank_matches(query, fused_matches, reranker, top_k)
+        if reranker is not None
+        else fused_matches[:top_k]
     )
 
     return [
@@ -209,7 +221,7 @@ def retrieve_hybrid_chunks(
             match["metadata"],
             format_hybrid_score_label(match),
         )
-        for rank, match in enumerate(fused_matches, start=1)
+        for rank, match in enumerate(final_matches, start=1)
     ]
 
 
