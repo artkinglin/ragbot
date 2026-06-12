@@ -1,13 +1,13 @@
 # Raw Python RAG Chatbot
 
-This project is a small Retrieval Augmented Generation chatbot backbone. It reads a PDF, chunks the text, embeds the chunks locally with SentenceTransformers, stores vectors in ChromaDB, retrieves matching chunks with hybrid BM25 keyword search plus vector search, reranks the fused candidates with a cross-encoder, and asks Groq to answer from that retrieved context.
+This project is a small Retrieval Augmented Generation chatbot backbone. It reads a PDF, chunks the text, embeds the chunks locally with SentenceTransformers, stores vectors in ChromaDB, retrieves matching chunks with hybrid BM25 keyword search plus vector search, reranks the fused candidates with a cross-encoder, asks Groq to answer from that retrieved context, and validates the answer's source citations.
 
 No LangChain. No LlamaIndex. The goal is to make every moving part visible.
 
 ## Pipeline
 
 ```text
-PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fused candidates -> cross-encoder rerank -> Groq -> answer
+PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fused candidates -> cross-encoder rerank -> Groq -> citation validation -> answer
 ```
 
 ## Common Workflow
@@ -25,7 +25,8 @@ PDF -> text -> chunks -> embeddings -> ChromaDB -> BM25 + vector retrieval -> fu
 - `bm25.py` - scores exact keyword matches with local BM25.
 - `reranking.py` - reranks fused candidates with a cross-encoder.
 - `retrieval.py` - finds relevant chunks with BM25, vector search, rank fusion, and reranking.
-- `generation.py` - builds the prompt and calls Groq.
+- `citations.py` - extracts source labels and validates answer citations.
+- `generation.py` - builds the prompt, calls Groq, and repairs invalid citations once.
 - `main.py` - CLI entry point that ties everything together.
 - `README.md` - setup guide, learning notes, and interview Q&A.
 
@@ -74,6 +75,12 @@ Use `--debug` when you want to inspect retrieved chunks before Groq generates th
 Use `--vector-candidates`, `--bm25-candidates`, `--vector-weight`, and `--bm25-weight` to tune hybrid retrieval.
 Use `--rerank-candidates` and `--rerank-model` to tune cross-encoder reranking, or `--no-rerank` for faster hybrid-only retrieval.
 
+## Citation Enforcement
+
+Generated factual claims use canonical inline labels such as `[Source 1]`. The app checks that every generated answer contains at least one citation, uses square-bracket syntax, and refers only to source labels present in the retrieved context.
+
+If the first response fails validation, the app asks Groq to repair it once using an explicit list of allowed labels. If the repaired response is still invalid, the app returns a fixed citation failure message instead of showing unsupported or fabricated citations. The no-context response is returned directly because there is no retrieved source to cite.
+
 ## Tests
 
 ```powershell
@@ -97,6 +104,7 @@ python -m unittest discover -s tests
 - Cross-encoder reranking: scores each question/chunk pair directly after retrieval to improve final ordering.
 - Distance cutoff: optionally filters out weak matches before prompting the LLM.
 - Prompt grounding: gives the LLM retrieved context and rules for answering.
+- Citation validation: requires canonical source labels and rejects labels outside the retrieved context.
 - Environment variable: keeps `GROQ_API_KEY` out of source code.
 - CLI loop: keeps accepting questions until the user exits.
 
@@ -105,6 +113,7 @@ python -m unittest discover -s tests
 - Scanned PDFs need OCR before `pypdf` can extract useful text.
 - Character chunking is easy to learn from, but token chunking is more precise.
 - Retrieved chunks can still be irrelevant if both lexical and semantic signals miss the user's intent.
+- Citation validation verifies source-label usage, not whether every cited sentence is semantically entailed by its source.
 
 ## Things To Modify
 
@@ -139,10 +148,14 @@ Hybrid retrieval is good at gathering candidates. A cross-encoder is better at d
 **8. What can cause bad answers in a RAG system?**  
 Bad chunking, irrelevant retrieval, missing PDF text, weak prompts, or an LLM that ignores the supplied context can all degrade answers.
 
+**9. How are citations enforced?**
+The generator requires `[Source N]` labels, validates them against retrieved source headers, retries one invalid response with repair instructions, and suppresses the answer if the repair still fails.
+
 ## Portfolio Talking Points
 
 - Built the RAG pipeline without LangChain or LlamaIndex to show the underlying mechanics.
 - Added hybrid BM25 plus vector retrieval with reciprocal-rank fusion.
 - Added cross-encoder reranking to improve final context ordering.
+- Enforced valid inline citations with deterministic validation and a constrained repair attempt.
 - Used local embeddings to avoid embedding API keys and keep retrieval inexpensive.
 - Added debug retrieval mode so answer quality can be traced back to source chunks.
