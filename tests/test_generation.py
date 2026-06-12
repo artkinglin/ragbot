@@ -51,6 +51,13 @@ class BuildPromptTests(unittest.TestCase):
 
         self.assertIn("say you do not know from the document", prompt)
 
+    def test_prompt_requires_canonical_inline_citations(self) -> None:
+        prompt = build_prompt("What happened?", ["Source 1\nImportant context."])
+
+        self.assertIn("Cite every factual claim", prompt)
+        self.assertIn("[Source 1]", prompt)
+        self.assertIn("Never invent a source label", prompt)
+
 
 class GenerateAnswerTests(unittest.TestCase):
     def test_returns_no_context_answer_without_calling_groq(self) -> None:

@@ -9,7 +9,10 @@ from groq import Groq
 from config import GROQ_MODEL_NAME, GROQ_TEMPERATURE
 
 
-SYSTEM_PROMPT = "You are a careful RAG assistant that answers only from supplied context."
+SYSTEM_PROMPT = (
+    "You are a careful RAG assistant that answers only from supplied context "
+    "and cites supporting source labels exactly."
+)
 NO_CONTEXT_ANSWER = "I do not know from the document because retrieval did not find relevant context."
 
 
@@ -24,7 +27,9 @@ Rules:
 - Answer only from the provided context when possible.
 - If the context does not contain the answer, say you do not know from the document.
 - Be concise, but include enough detail to be useful.
-- Mention source labels, such as Source 1 or Source 2, when they support the answer.
+- Cite every factual claim with one or more supporting labels in square brackets.
+- Use only labels from the retrieved context, formatted exactly as [Source 1] or [Source 2].
+- Never invent a source label or mention a source without square brackets.
 
 Retrieved context:
 {context}
