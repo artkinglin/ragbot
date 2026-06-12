@@ -9,7 +9,7 @@ from generation import (
 
 
 class Message:
-    content = "Grounded answer."
+    content = "Grounded answer [Source 1]."
 
 
 class Choice:
@@ -70,7 +70,7 @@ class GenerateAnswerTests(unittest.TestCase):
 
         answer = generate_answer_with_client("Question?", ["Source 1\nContext."], client, "model-a")
 
-        self.assertEqual(answer, "Grounded answer.")
+        self.assertEqual(answer, "Grounded answer [Source 1].")
         self.assertEqual(client.chat.completions.last_kwargs["model"], "model-a")
         self.assertEqual(client.chat.completions.last_kwargs["messages"][0]["role"], "system")
 
